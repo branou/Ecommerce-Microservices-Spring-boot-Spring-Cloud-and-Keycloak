@@ -2,6 +2,8 @@ package dev.himbra.order.service;
 
 import dev.himbra.order.dtos.OrderLineRequest;
 import dev.himbra.order.dtos.OrderResponse;
+import dev.himbra.order.kafka.OrderConfirmation;
+import dev.himbra.order.kafka.OrderProducer;
 import dev.himbra.order.products.ProductClient;
 import dev.himbra.order.customer.CustomerClient;
 import dev.himbra.order.dtos.OrderRequest;
@@ -23,6 +25,7 @@ public class OrderService {
     private final OrderLineService orderLineService;
     private final CustomerClient customerClient;
     private final ProductClient productClient;
+    private final OrderProducer orderProducer;
     public Integer createOrder(OrderRequest orderRequest){
         // Check if customer exists
         var customer = this.customerClient.getCustomerById(orderRequest.id())
@@ -39,6 +42,17 @@ public class OrderService {
                     )
             );
         }
+        // Send order confirmation
+        orderProducer.sendOrderConfirmation(
+                new OrderConfirmation(
+                        orderRequest.reference(),
+                        orderRequest.amount(),
+                        orderRequest.paymentMethod(),
+                        customer,
+                        purchasedProducts
+                )
+
+        );
 
         return order.getId();
     }
